@@ -114,7 +114,8 @@ sum(is.na(dat$cq2))
 names(dat)
 
 ########################### analyses ################################### 
-# day of the week ------------------------------------------------------
+# Time ------------------------------------------------------
+# day of the week
 dat <- dat %>% 
   mutate(day = wday(date, label = T))
 
@@ -130,6 +131,21 @@ m_nps$P.adjusted
 
 # month
 # time (arvo, morning)
+
+# year
+
+# Quarter
+# day of the week
+dat %>% 
+  group_by(Quarter) %>% 
+  summarise(nps = mean(nps, na.rm = T),
+            sum_courses = n()) %>% 
+  arrange()
+
+nps_day <- kruskal.test(nps ~ day, data = dat)
+m_nps <- dunn.test(x = dat$nps, g = dat$day, method = "bonferroni", kw = T)
+m_nps$P.adjusted
+
 # level (1, 2, 300)-------------------------------------------------------------
 dat <- dat %>% 
   mutate(level = str_sub(course_code, -3))
@@ -172,6 +188,8 @@ dat %>%
 # delivery ---------------------------------------------------------------------
 # in person or online
 dat %>% 
+  # filter(year != 2022,
+  #        year != 2021) %>% 
   group_by(Delivery) %>% 
   summarise(nps = mean(nps, na.rm = T),
             sum_courses = n()) %>% 
