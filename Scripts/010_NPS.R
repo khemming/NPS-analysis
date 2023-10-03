@@ -14,6 +14,7 @@ library(tidyverse)
 library(lubridate)
 library(marketr)
 library(dunn.test)
+library(stringr)
 
 # data and processing ----------------------------------------------------------
 numb_dat <- read.csv("data/course_numbers.csv")
@@ -112,20 +113,80 @@ sum(is.na(dat$cq2))
 
 names(dat)
 
-# columns for analysis
-# day as factor
+########################### analyses ################################### 
+# day of the week ------------------------------------------------------
 dat <- dat %>% 
   mutate(day = wday(date, label = T))
 
-# correlations ---------------------------------------------------------------
-# day of the week
+dat %>% 
+  group_by(day) %>% 
+  summarise(nps = mean(nps, na.rm = T),
+            sum_courses = n()) %>% 
+  arrange()
+
+nps_day <- kruskal.test(nps ~ day, data = dat)
+m_nps <- dunn.test(x = dat$nps, g = dat$day, method = "bonferroni", kw = T)
+m_nps$P.adjusted
+
 # month
 # time (arvo, morning)
-# technology/tool
-# level (1, 2, 300)
-# institution
+# level (1, 2, 300)-------------------------------------------------------------
+dat <- dat %>% 
+  mutate(level = str_sub(course_code, -3))
+table(dat$level)
+
+dat %>% 
+  group_by(level) %>% 
+  summarise(nps = mean(nps, na.rm = T),
+            sum_courses = n()) %>% 
+  arrange()
+
+# technology/tool --------------------------------------------------------------
+dat %>% 
+  group_by(Tool) %>% 
+  summarise(nps = mean(nps, na.rm = T),
+            sum_courses = n()) %>% 
+  filter(sum_courses > 5) %>% 
+  arrange(desc(nps)) %>% 
+  print(n = 22)
+
+# institution ------------------------------------------------------------------
+dat %>% 
+  group_by(institution) %>% 
+  summarise(nps = mean(nps, na.rm = T),
+            sum_courses = n()) %>% 
+  filter(sum_courses > 5) %>% 
+  arrange(desc(nps))
+
 # role x technology
-# year
+# year -------------------------------------------------------------------------
+# no data for 2016 - 2017
+dat %>% 
+  group_by(year) %>% 
+  summarise(nps = mean(nps, na.rm = T),
+            sum_courses = n()) %>% 
+  filter(year >= 2018) %>% 
+  arrange(year)
+
+
+# delivery ---------------------------------------------------------------------
+# in person or online
+dat %>% 
+  group_by(Delivery) %>% 
+  summarise(nps = mean(nps, na.rm = T),
+            sum_courses = n()) %>% 
+  drop_na()
+
+del_dat <- dat %>% 
+  filter(Delivery != "")
+# .....
+
+
+table(del_dat$Delivery)
+
+wilcox.test(del_dat$Delivery, del_dat$nps)
+
+
 # 9 quantitative metrics
 # Solo versus packaged (Course.type)
 
@@ -134,13 +195,6 @@ dat %>%
 ggplot(., aes(nps)) +
   geom_histogram()
 
-dat %>% 
-  group_by(day) %>% 
-  summarise(nps = mean(nps, na.rm = T)) %>% 
-  arrange()
 
-nps_day <- kruskal.test(nps ~ day, data = dat)
-m_nps <- dunn.test(x = dat$nps, g = dat$day, method = "bonferroni", kw = T)
-m_nps$P.adjusted
 
 # online versus in-person
