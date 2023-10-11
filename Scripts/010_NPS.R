@@ -55,10 +55,10 @@ response_code <- unique(response_dat$Uni_short)
 # files
 institution <- read.csv("Data/institution.csv")
 
-respons_dat <- response_dat %>% 
+response_dat <- response_dat %>% 
   select(-Uni_short) %>% 
   left_join(institution, by = "uni")
-head(respons_dat)
+head(response_dat)
 
 course_dat <- course_dat %>% 
   left_join(institution, by = "Member") # ignore error
@@ -87,15 +87,15 @@ head(course_dat)
 
 # NPS and average scores -------------------------------------------------------
 # calculate NPS
-respons_dat2 <- respons_dat %>% 
+response_dat2 <- response_dat %>% 
                 rename(nps_question = cq9)
 
-nps <- nps_calc(respons_dat2, date, course_code, institution)                  
+nps <- nps_calc(response_dat2, date, course_code, institution)                  
 
 # calculate average scores for other nine metrics (cq1-8, 10)
-cq_df <- respons_dat %>% 
+cq_df <- response_dat2 %>% 
   group_by(date, course_code, institution) %>% 
-  summarise(across(c(cq1:cq8, cq10), ~ mean(.x, na.rm = T)))
+  summarise(across(c(cq1:cq8, cq10, nps_question), ~ mean(.x, na.rm = T)))
 
 # merge
 response_sum <- left_join(nps, cq_df, 
@@ -195,24 +195,25 @@ dat %>%
             sum_courses = n()) %>% 
   drop_na()
 
-del_dat <- dat %>% 
-  filter(Delivery != "")
-# .....
-
 
 table(del_dat$Delivery)
 
 wilcox.test(del_dat$Delivery, del_dat$nps)
 
-
-# 9 quantitative metrics
-# Solo versus packaged (Course.type)
-
-# distribution of NPS scores
-dat %>%
-ggplot(., aes(nps)) +
-  geom_histogram()
+# 9 quantitative metrics -------------------------------------------------------
+# make a table of tests here - e.g. by tool/tech, or institution, ... NPS
 
 
 
-# online versus in-person
+# Solo versus packaged (Course.type) -------------------------------------------
+table(dat$Course.Type)
+
+dat %>% 
+  filter(Course.Type == "Packaged" |
+         Course.Type == "Solo")  %>% 
+  group_by(Course.Type) %>% 
+  summarise(nps = mean(nps, na.rm = T),
+            sum_courses = n()) %>% 
+  filter(sum_courses > 5) %>% 
+  arrange(desc(nps))
+
